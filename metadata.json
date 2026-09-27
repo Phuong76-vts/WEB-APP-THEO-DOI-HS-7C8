@@ -1,0 +1,7 @@
+{
+  "name": "Hệ Thống Quản Lý Lớp Học & Thi Đua Số - Lớp 7C8",
+  "description": "Ứng dụng quản lý lớp học và thi đua số năm học 2026-2027 dành cho GVCN toàn quyền và Ban cán sự đánh giá xếp loại thi đua.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
