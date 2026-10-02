@@ -186,7 +186,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </span>
               </div>
               <h3 className="text-lg font-black font-['Nunito',sans-serif]">
-                {isMandatory ? 'ĐĂNG NHẬP VÀO ỨNG DỤNG' : 'ĐĂNG NHẬP & PHÂN QUYỀN'}
+                {isMandatory ? 'ĐĂNG NHẬP VÀO ỨNG DỤNG' : 'CHẾ ĐỘ SỬ DỤNG TRÊN MÁY'}
               </h3>
               <p className="text-xs text-indigo-100">
                 {settings.className} - {settings.schoolName} • GVCN: <b className="text-white">{settings.teacherName}</b>
@@ -204,6 +204,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           )}
         </div>
 
+        <p className="px-5 pt-4 text-sm text-blue-900">Các chế độ và PIN dưới đây chỉ dùng trên tài khoản Google đang mở. Không cấp quyền Firebase cho tài khoản Google khác.</p>
         {/* MODAL BODY */}
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto custom-scroll flex-1">
           

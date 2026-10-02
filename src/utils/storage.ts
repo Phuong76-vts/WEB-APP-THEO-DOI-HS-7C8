@@ -1,5 +1,11 @@
 import { Student, PointLog, AttendanceRecord, ClassSettings, RANK_TIERS, RankTier, UserRole, ClassRule, DEFAULT_CLASS_RULES, ActiveOfficer, MonthlyRecord, MonthlyStore } from '../types';
 
+let storageNamespace = '';
+export function setStorageNamespace(uid: string) {
+  storageNamespace = uid ? `firebase:${uid}:` : '';
+  blockedKeys.clear(); storageErrors.clear();
+}
+const scopedKey = (key: string) => storageNamespace + key;
 const blockedKeys = new Set<string>();
 const storageErrors = new Map<string, string>();
 export function hasUnreadableStorage(): boolean { return blockedKeys.size > 0; }
@@ -12,7 +18,7 @@ function reportStorage(key: string, message?: string) {
 }
 function readStorage(key: string): string | null {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(scopedKey(key));
     if (raw !== null && key !== 'classroom_user_role_v1' && key !== 'classroom_auth_remember_v1') JSON.parse(raw);
     return raw;
   } catch (error) {
@@ -24,7 +30,7 @@ function readStorage(key: string): string | null {
 function writeStorage(key: string, value: string) {
   if (blockedKeys.has(key)) throw new Error('Dữ liệu gốc đang được bảo vệ');
   try {
-    localStorage.setItem(key, value);
+    localStorage.setItem(scopedKey(key), value);
     reportStorage(key);
   } catch (error) {
     reportStorage(key, 'Chưa lưu được dữ liệu trên trình duyệt. Hãy tải bản sao lưu JSON trước khi đóng trang.');
@@ -238,7 +244,7 @@ export function loadStoredOfficer(): ActiveOfficer | null {
 export function saveStoredOfficer(officer: ActiveOfficer | null) {
   try {
     if (!officer) {
-      localStorage.removeItem(STORAGE_KEYS.ACTIVE_OFFICER);
+      localStorage.removeItem(scopedKey(STORAGE_KEYS.ACTIVE_OFFICER));
     } else {
       writeStorage(STORAGE_KEYS.ACTIVE_OFFICER, JSON.stringify(officer));
     }
@@ -304,11 +310,11 @@ export function saveAuthenticationState(authenticated: boolean, rememberOnDevice
       if (rememberOnDevice) {
         writeStorage(AUTH_REMEMBER_KEY, 'true');
       } else {
-        localStorage.removeItem(AUTH_REMEMBER_KEY);
+        localStorage.removeItem(scopedKey(AUTH_REMEMBER_KEY));
       }
     } else {
       sessionStorage.removeItem(AUTH_SESSION_KEY);
-      localStorage.removeItem(AUTH_REMEMBER_KEY);
+      localStorage.removeItem(scopedKey(AUTH_REMEMBER_KEY));
     }
   } catch (e) {
     console.error('Failed to save auth state', e);

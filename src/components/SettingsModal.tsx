@@ -94,7 +94,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     playClick(soundEnabled);
     onUpdateSettings(formData);
     saveStoredSettings(formData);
-    alert(getStorageError() || 'Đã lưu thông tin lớp học và cài đặt bảo mật thành công!');
+    alert(getStorageError() || 'Đã cập nhật thông tin lớp. Xem trạng thái lưu Firebase ở đầu trang.');
   };
 
   const handleBackupJson = () => {

@@ -1,31 +1,14 @@
-# Bản sửa lỗi lưu dữ liệu – 27/09/2026
+# Những gì đã sửa ở bản này
 
-## Cập nhật
-1. Nếu ứng dụng cũ vẫn còn dữ liệu đúng, vào Cài đặt → Sao lưu JSON trước khi cập nhật. Bản cũ chưa sao lưu các tháng và nội quy; nên giữ nguyên dữ liệu trình duyệt.
-2. Thay mã nguồn dự án bằng nội dung ZIP này. Không chép node_modules của bản cũ.
-3. Chạy `npm install`, `npm test`, `npm run lint`, `npm run build`.
-4. Thư mục `dist` trong ZIP là bản đã build. Có thể dùng để triển khai lên dịch vụ hosting tĩnh.
-5. Cập nhật trên cùng địa chỉ web và dùng cùng trình duyệt để đọc dữ liệu cũ. Không xóa dữ liệu trang web/localStorage.
-6. Vào Cài đặt → Sao lưu JSON để tải bản sao lưu mới đầy đủ. Thử thêm học sinh, sửa tên lớp, đổi tổ, tải lại trang để kiểm tra trên máy thực tế.
+Bản sửa LocalStorage ngày 27/09 đã được tích hợp sẵn. Bản này bổ sung phần Firebase:
 
-## Đã sửa
-- Bỏ ép danh sách về 54 học sinh mẫu, ép tên học sinh đầu tiên, tự sửa tổ/chức vụ và cán bộ lớp.
-- Giữ tên lớp và năm học người dùng nhập, kể cả LỚP 6D8 và 2025–2026.
-- Giữ danh sách học sinh rỗng, nội quy rỗng và điểm khởi tạo 0.
-- Hiện cảnh báo rõ khi không đọc/ghi được bộ nhớ trình duyệt. Không tự ghi đè dữ liệu gốc bị lỗi JSON hoặc danh sách/tháng sai cấu trúc.
-- Khi khôi phục JSON hợp lệ, cho phép ghi lại các vùng dữ liệu liên quan đang được bảo vệ.
-- Khi mở lại ứng dụng, lấy điểm/nhật ký theo tháng đang chọn; không tự đồng bộ đè lên tháng đã chốt.
-- Chặn sửa điểm, sửa danh sách và xóa nhật ký trong tháng đã chốt; mở khóa tháng từ cửa sổ quản lý tháng để tiếp tục sửa.
-- Sao lưu JSON v3 có danh sách, thông tin lớp, điểm danh, nhật ký, nội quy, dữ liệu toàn bộ tháng. Vẫn nhận bản sao lưu cũ; bản cũ không có dữ liệu tháng thì tạo cấu trúc tháng mặc định.
-- HTML xuất ra mang theo điểm danh, nhật ký, nội quy và dữ liệu tháng. Dữ liệu này được giữ trong sao lưu; giao diện HTML vẫn là giao diện đơn giản có sẵn, không thay thế toàn bộ chức năng quản lý tháng của bản React.
-- Mỗi lần xuất HTML có vùng lưu riêng. Mở lại cùng file có thể tiếp tục dữ liệu của file đó; lần xuất mới bắt đầu từ dữ liệu web tại thời điểm xuất. Nút khôi phục chỉ tác động bản HTML, không xóa toàn bộ localStorage.
-- Chống nội dung chứa thẻ đóng script làm hỏng dữ liệu JSON nhúng trong HTML.
+1. **Đưa dữ liệu hiện có lên Firebase bằng nút bấm.** Thêm bảng chọn nguồn dùng được cả lúc khởi tạo lần đầu lẫn lúc lớp đã có trên Firebase: bản lưu của tài khoản trên máy, bản nháp đang mở, dữ liệu LocalStorage bản cũ, **dữ liệu mẫu 54 học sinh lớp 7C8**, lớp trống, hoặc file JSON. Mỗi nguồn hiện sẵn sĩ số, số tháng và tên lớp trước khi bấm.
+2. **Ghi đè an toàn.** `uploadCloud()` ghi trong transaction, tự đọc `revision` hiện tại rồi tăng đúng 1 nên luôn hợp lệ với rules. Trước khi ghi đè, hộp thoại hiện mô tả bản đang có trên Firebase và nút tải sao lưu JSON.
+3. **Rules chặt hơn và có chú thích tiếng Việt.** Khoá `ownerUid` không đổi được khi cập nhật, bắt buộc `schemaVersion == 1`, `payload` khác rỗng và có giới hạn độ dài, chặn `list`, chặn `delete`, chặn mọi collection con và mọi đường dẫn khác.
+4. **Đăng nhập Google không còn chết khi popup bị chặn.** Tự chuyển sang `signInWithRedirect` và thu kết quả khi quay lại trang (quan trọng với iPad, máy chiếu, webview).
+5. **Thông báo lỗi Firebase tiếng Việt đầy đủ hơn**: `unauthenticated`, `not-found`, `failed-precondition`, `deadline-exceeded`, `aborted`, `invalid-argument`, `auth/too-many-requests`, `auth/web-storage-unsupported`…
+6. **Thanh trạng thái hiện số bản** (`bản #12`) để đối chiếu giữa các thiết bị.
+7. **Dọn vòng đời phiên**: đặt namespace localStorage theo UID bằng `useMemo` thay vì gọi phụ trong `useState`, tránh chạy lặp ở StrictMode.
+8. **Thêm kiểm thử.** `npm test` chạy thêm `tests/cloud.data.test.cjs` (9 kiểm tra, không cần emulator). `npm run test:rules` bổ sung các trường hợp: revision lùi, đổi `ownerUid`, sai `schemaVersion`, payload rỗng/không phải chuỗi, ghi vào collection con, và toàn bộ luồng upload.
 
-## Kiểm chứng
-- `npm test`: 13 kiểm tra đạt, gồm các sĩ số 0/40/53/54/55, tên lớp/năm học, cán bộ lớp, nội quy rỗng, JSON hỏng, lỗi quota/ghi lại, sao lưu tháng, file khôi phục sai, HTML lưu/đọc lại và bảo toàn dữ liệu không liên quan.
-- `npm run lint`: đạt.
-- `npm run build`: đạt. Vite có cảnh báo kích thước bundle trên 500 kB; không phải lỗi build.
-- Chưa kiểm thử giao diện bằng Chromium tự động: môi trường không tải được trình duyệt. Chưa kiểm tra trực tiếp website đang triển khai của người dùng.
-
-## Phạm vi lưu dữ liệu
-Ứng dụng vẫn lưu trên localStorage của trình duyệt, chưa có máy chủ hay đồng bộ giữa thiết bị. Không thể tự khôi phục dữ liệu đã bị phiên bản cũ ghi đè nếu không có bản sao lưu. Bản HTML còn dùng thư viện/font từ CDN như bản gốc nên cần mạng để tải đầy đủ giao diện. Điểm danh hiện tại vẫn là trạng thái gần nhất của mỗi học sinh, chưa có lịch sử theo từng ngày.
+Xem `HUONG_DAN_FIREBASE.md` để cấu hình Authentication, Firestore và triển khai.

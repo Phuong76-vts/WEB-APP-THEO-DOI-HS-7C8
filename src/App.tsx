@@ -1,3 +1,4 @@
+import type { CloudData } from './cloud/data';
 import React, { useState, useEffect } from 'react';
 import { Student, ClassSettings, PointLog, AttendanceRecord, AttendanceStatus, UserRole, ClassRule, ActiveOfficer, GroupId, MonthlyRecord, MonthlyStore } from './types';
 import { 
@@ -45,9 +46,12 @@ import { MonthBar } from './components/MonthBar';
 import { MonthlyArchiveModal } from './components/MonthlyArchiveModal';
 import { ArchiveNextMonthModal } from './components/ArchiveNextMonthModal';
 
-export default function App() {
+export default function App({cloudInitial, onCloudChange, onCloudLogout}: {
+  cloudInitial?: CloudData; onCloudChange?: (data: CloudData) => void; onCloudLogout?: () => void;
+}) {
   // --- CORE APPLICATION STATES ---
   const [initialData] = useState(() => {
+    if (cloudInitial) return {students:cloudInitial.students,logs:cloudInitial.pointLogs,store:cloudInitial.monthlyStore};
     const loadedStudents = loadStoredStudents();
     const loadedLogs = loadStoredLogs();
     const store = loadStoredMonthlyData(loadedStudents, loadedLogs);
@@ -63,16 +67,17 @@ export default function App() {
     return () => window.removeEventListener('classroom-storage-status', update);
   }, []);
   const [students, setStudents] = useState<Student[]>(initialData.students);
-  const [settings, setSettings] = useState<ClassSettings>(() => loadStoredSettings());
+  const [settings, setSettings] = useState<ClassSettings>(() => cloudInitial?.settings ?? loadStoredSettings());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (cloudInitial) return true;
     const s = loadStoredSettings();
     return checkIsAuthenticated(s.requireLoginOnEntry !== false);
   });
   const [pointLogs, setPointLogs] = useState<PointLog[]>(initialData.logs);
-  const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>(() => loadStoredAttendance());
-  const [currentRole, setCurrentRole] = useState<UserRole>(() => loadStoredRole());
+  const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>(() => cloudInitial?.attendance ?? loadStoredAttendance());
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => cloudInitial ? 'gvcn' : loadStoredRole());
   const [activeOfficer, setActiveOfficer] = useState<ActiveOfficer | null>(() => loadStoredOfficer());
-  const [rules, setRules] = useState<ClassRule[]>(() => loadStoredRules());
+  const [rules, setRules] = useState<ClassRule[]>(() => cloudInitial?.rules ?? loadStoredRules());
 
   const [activeTab, setActiveTab] = useState<'classroom' | 'leaderboard' | 'attendance' | 'utilities' | 'rules'>('classroom');
 
@@ -142,6 +147,16 @@ export default function App() {
       return updatedStore;
     });
   }, [students, pointLogs]);
+
+  useEffect(() => {
+    if (!onCloudChange) return;
+    const current = monthlyStore.months[monthlyStore.activeMonthId];
+    const snapshot = current.isArchived ? monthlyStore : { ...monthlyStore, months: {
+      ...monthlyStore.months, [current.id]: { ...current,
+        studentScores: Object.fromEntries(students.map(s => [s.id, s.points])), pointLogs }
+    }};
+    onCloudChange({students, settings, pointLogs, attendance, rules, monthlyStore: snapshot});
+  }, [students, settings, pointLogs, attendance, rules, monthlyStore, onCloudChange]);
 
   const handleRoleChange = (newRole: UserRole) => {
     setCurrentRole(newRole);
@@ -286,6 +301,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    if (onCloudLogout) { onCloudLogout(); return; }
     setIsAuthenticated(false);
     saveAuthenticationState(false, false);
     setIsLoginOpen(true);
@@ -649,7 +665,7 @@ export default function App() {
             <b>Hệ Thống Quản Lý Lớp Học & Thi Đua Số</b> • {settings.className} - {settings.schoolName}
           </div>
           <div>
-            GVCN: <b>{settings.teacherName}</b> • Tự động lưu LocalStorage 100% Offline
+            GVCN: <b>{settings.teacherName}</b> • {cloudInitial ? 'Lưu Firebase • Xem trạng thái đồng bộ phía trên' : 'Lưu trên trình duyệt'}
           </div>
         </div>
       </footer>

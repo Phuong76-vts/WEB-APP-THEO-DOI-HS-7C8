@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// Quy tắc bảo mật Cloud Firestore – Hệ thống Quản lý lớp học & Thi đua số
+//
+// Mô hình dữ liệu khớp với logic hiện có của ứng dụng:
+//   classrooms/{uid}  →  một tài khoản Google = một lớp, toàn bộ lớp nằm gọn trong MỘT document.
+//     ownerUid      (string)    UID Google sở hữu, phải trùng tên document.
+//     revision      (int)       tăng đúng 1 mỗi lần lưu → phát hiện xung đột giữa 2 thiết bị.
+//     payload       (string)    JSON đã nén của toàn bộ lớp: students, settings, pointLogs,
+//                               attendance, rules, monthlyStore (xem src/cloud/data.ts).
+//     updatedAt     (timestamp) do máy chủ ghi, client không tự đặt được.
+//     schemaVersion (int)       hiện tại là 1.
+//
+// Vì sao gom vào một document: mọi thao tác của app (chấm điểm, điểm danh, chốt tháng,
+// khôi phục JSON) đều sửa nhiều phần dữ liệu cùng lúc. Gom một document giúp mỗi lần lưu
+// là một transaction nguyên vẹn, không bao giờ để lại trạng thái nửa vời trên Firebase.
+//
+// Vai trò GVCN / Ban cán sự / Trình chiếu và mã PIN trong app chỉ là chế độ thao tác trên
+// THIẾT BỊ đang đăng nhập, không phải cơ chế phân quyền của Firestore, và cố tình không
+// được dùng ở đây: mã PIN nằm trong payload nên không thể dùng để cấp quyền database.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /classrooms/{uid} {
+
+      // Chỉ chủ tài khoản đọc được lớp của chính mình. Không có đọc công khai.
+      allow get: if request.auth != null && request.auth.uid == uid;
+
+      // Không cho liệt kê collection: không ai dò được danh sách UID giáo viên.
+      allow list: if false;
+
+      // Tạo lần đầu luôn bắt đầu từ revision 1.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'revision', 'payload', 'updatedAt', 'schemaVersion'])
+        && request.resource.data.keys().hasAll(['ownerUid', 'revision', 'payload', 'updatedAt', 'schemaVersion'])
+        && request.resource.data.ownerUid is string
+        && request.resource.data.ownerUid == uid
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.payload is string
+        && request.resource.data.payload.size() > 0
+        // size() đếm ký tự. Firestore vẫn tự chặn 1 MiB/document theo byte,
+        // và client (src/cloud/service.ts) đã kiểm tra 850.000 byte trước khi gửi.
+        && request.resource.data.payload.size() <= 900000
+        && request.resource.data.revision is int
+        // updatedAt bắt buộc là serverTimestamp(): client không ghi lùi được thời gian.
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.revision == 1;
+
+      // Mỗi lần lưu tăng đúng 1. Hai thiết bị sửa song song thì một bên bị từ chối
+      // thay vì âm thầm ghi đè. Không cho đổi chủ sở hữu document.
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'revision', 'payload', 'updatedAt', 'schemaVersion'])
+        && request.resource.data.keys().hasAll(['ownerUid', 'revision', 'payload', 'updatedAt', 'schemaVersion'])
+        && request.resource.data.ownerUid is string
+        && request.resource.data.ownerUid == uid
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.payload is string
+        && request.resource.data.payload.size() > 0
+        && request.resource.data.payload.size() <= 900000
+        && request.resource.data.revision is int
+        && request.resource.data.updatedAt == request.time
+        && resource.data.ownerUid == uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.revision == resource.data.revision + 1;
+
+      // Xóa bị chặn hoàn toàn: mất dữ liệu lớp là không thể hoàn tác.
+      // Muốn làm lại từ đầu thì dùng nút "Đưa dữ liệu lên Firebase" để ghi đè bằng lớp trống.
+      allow delete: if false;
+    }
+
+    // Mọi đường dẫn khác đều đóng: thiết kế này không dùng collection nào khác.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

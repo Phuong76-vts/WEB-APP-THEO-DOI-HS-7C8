@@ -14,6 +14,16 @@ function setup(seed = {}) {
 let passed=0;
 function test(name, fn) { fn(); passed++; console.log('PASS',name); }
 const key = 'classroom_students_v7c8_54';
+test('Firebase local cache isolated by account UID',()=>{
+ const {api}=setup();api.setStorageNamespace('teacher-a');api.saveStoredStudents([]);
+ api.setStorageNamespace('teacher-b');api.saveStoredStudents(api.INITIAL_STUDENTS.slice(0,2));
+ api.setStorageNamespace('teacher-a');assert.equal(api.loadStoredStudents().length,0);
+ api.setStorageNamespace('teacher-b');assert.equal(api.loadStoredStudents().length,2);
+});
+test('Firebase scoped writes preserve legacy migration data',()=>{
+ const {api,map}=setup({[key]:'legacy-original'});api.setStorageNamespace('teacher-a');api.saveStoredStudents([]);
+ assert.equal(map.get(key),'legacy-original');assert.equal(map.get('firebase:teacher-a:'+key),'[]');
+});
 for(const size of [0,40,53,54,55]) test('Preserve custom student list: '+size,()=>{
  const {api}=setup();
  const students=Array.from({length:size},(_,i)=>({...api.INITIAL_STUDENTS[i%54],id:'new-'+i,name:'Học sinh '+i,points:0}));
