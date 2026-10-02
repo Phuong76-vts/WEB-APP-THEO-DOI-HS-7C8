@@ -3,13 +3,13 @@ import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth'
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 export const firebaseConfig = {
-  apiKey: 'AIzaSyDyPU7AUWlolHH8HbCZzlpvG7rQHxOqg-0',
-  authDomain: 'web-quan-ly-lop-gvcn.firebaseapp.com',
-  projectId: 'web-quan-ly-lop-gvcn',
-  storageBucket: 'web-quan-ly-lop-gvcn.firebasestorage.app',
-  messagingSenderId: '324909352504',
-  appId: '1:324909352504:web:e5052a23261f7d3e7248cd',
-  measurementId: 'G-5SC0N3WLJH'
+  apiKey: "AIzaSyAE12tYEAEmReCOuA38jNmrqR5ksF2tyCw",
+  authDomain: "web-gvcn-quan-ly-hs-vts.firebaseapp.com",
+  projectId: "web-gvcn-quan-ly-hs-vts",
+  storageBucket: "web-gvcn-quan-ly-hs-vts.firebasestorage.app",
+  messagingSenderId: "344898516435",
+  appId: "1:344898516435:web:6c8ad68f9410b7b8862b26",
+  measurementId: "G-NY6J305VX0"
 };
 export const firebaseApp = getApps().some(app => app.name === '[DEFAULT]') ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
